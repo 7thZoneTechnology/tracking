@@ -36,6 +36,9 @@ module.exports = function (config) {
     ],
     preprocessors: {},
     reporters: ['progress'],
+    client: {
+      captureConsole: true
+    },
     port: 9876,
     colors: true,
     logLevel: config.LOG_INFO,
