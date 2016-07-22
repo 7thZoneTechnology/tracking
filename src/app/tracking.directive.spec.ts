@@ -1,12 +1,14 @@
 /* tslint:disable:no-unused-variable */
+import { Component } from '@angular/core';
 import { inject, addProviders } from '@angular/core/testing';
 import { TestComponentBuilder } from '@angular/compiler/testing';
-import { Component } from '@angular/core';
 import { By } from '@angular/platform-browser';
 import { TrackingDirective } from './tracking.directive';
 import { TrackingService } from './tracking.service';
 
-class MockTrackingService extends TrackingService {
+// do not extend the TrackingService. If there are other
+// dependencies this would be difficult or impossible.
+class MockTrackingService {
   public eventCount = 0;
 
   public trackEvent(eventName: string) {
@@ -14,31 +16,38 @@ class MockTrackingService extends TrackingService {
   }
 }
 
+let mockService = new MockTrackingService();
+
+beforeEach(() => {
+  addProviders([{provide: TrackingService, useValue: mockService}]);
+});
+
 describe('TrackingDirective', () => {
   let builder: TestComponentBuilder;
   let mockTrackingService: MockTrackingService;
-  let trackingDirective: TrackingDirective;
 
-  beforeEach(() => {
-    mockTrackingService = new MockTrackingService();
-    trackingDirective = new TrackingDirective(mockTrackingService);
-    addProviders([
-      {provide: TrackingDirective, use: trackingDirective}
-    ]);
-  });
+  beforeEach(inject([TestComponentBuilder, TrackingService],
+    (tcb: TestComponentBuilder, ts: TrackingService) => {
 
-  beforeEach(inject([TestComponentBuilder], (tcb: TestComponentBuilder) => {
-    builder = tcb;
-  }));
+      builder = tcb;
+      // we need to cast to MockTrackingService because
+      // TrackingService has no eventCount property and we need it
+      mockTrackingService = <MockTrackingService> ts;
+
+    }));
 
   // General button tests
   it('should apply class based on color attribute', (done: () => void) => {
-    return builder.createAsync(TestApp).then(fixture => {
+
+    builder
+      .overrideProviders(TrackingDirective, [{provide: TrackingService, useValue: mockService}])
+      .createAsync(TestApp).then(fixture => {
+
       let testComponent = fixture.debugElement.componentInstance;
       let buttonDebugElement = fixture.debugElement.query(By.css('button'));
 
       buttonDebugElement.nativeElement.click();
-      expect(buttonDebugElement).toBeTruthy();
+
       expect(mockTrackingService.eventCount).toBe(1);
 
       done();
